@@ -68,6 +68,8 @@ fn main() {
 
 // Loads the addressbook from the current directory into a Linked List.
 fn load_existing_addressbook() -> LinkedList<AddressBook> {
+    let mut addr_book_list: LinkedList<AddressBook> = LinkedList::new();
+
     let fname = DEFAULT_FILE_NAME;
     let file = match File::open(fname) {
         Ok(file) => file,
@@ -76,18 +78,37 @@ fn load_existing_addressbook() -> LinkedList<AddressBook> {
     let reader = BufReader::new(file);
 
     let mut is_new_instance = false;
-    let mut curr_addr_book;
+    /*
+    id: u32,
+    name: String,
+    address: String,
+    postcode: String,
+    city: String,
+    country: String
+    */
+    let mut curr_addr_book = AddressBook {id: 0,
+                                        name: "".to_string(),
+                                        address: "".to_string(),
+                                        postcode: "".to_string(),
+                                        city: "".to_string(),
+                                        country: "".to_string()
+                                        };
     //let mut id, name, address, postcode, city, country;
 
     for line in reader.lines() {
         let mut linebuffer = line.unwrap_or("".to_string());
-        if curr_line.len() > 3 {
-            if curr_line[..3] == INSTANCE_SEPERATOR.to_string() {
+        if linebuffer.len() > 3 {
+            if linebuffer[..3] == INSTANCE_SEPERATOR.to_string() {
                 if is_new_instance {
                     is_new_instance = false;
 
+                    //TODO: Copy each value from one struct to another
+                    // Maybe also just reinitialize the curr_addr_book for a new AddressBook after pushing?
+                    //let mut new_addr_book = AddressBook {.. curr_addr_book};
+                    //addr_book_list.push_back(new_addr_book);
                 } else {
                     is_new_instance = true;
+
                 }
             }
             // TODO: match each value from the file to a respective value from the struct.
@@ -101,7 +122,7 @@ fn load_existing_addressbook() -> LinkedList<AddressBook> {
         }
     }
 
-    return LinkedList::new();
+    return addr_book_list;
 }
 
 fn create_new_address(curr_list: &LinkedList<AddressBook>) {
@@ -133,9 +154,12 @@ fn save_address_list(curr_list: &LinkedList<AddressBook>) {
         let mut linebuffer = INSTANCE_SEPERATOR.to_string() + "\n";
         writer.write(&linebuffer.into_bytes());
 
-        //TODO: convert the id to string and then into bytes. Or directly into bytes?
-        //linebuffer = "id      : ".to_string() + &(addr_book.id.into_string()) + "\n";
-        //writer.write(&linebuffer.into_bytes());
+        linebuffer = "id      : ".to_string();
+        // test if mut is needed
+        let mut id_as_char = std::char::from_u32(addr_book.id);
+        linebuffer.push(id_as_char.unwrap_or('0'));
+        linebuffer.push('\n');
+        writer.write(&linebuffer.into_bytes());
 
         linebuffer = "name    : ".to_string() + &addr_book.name + "\n";
         writer.write(&linebuffer.into_bytes());
