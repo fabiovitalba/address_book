@@ -16,6 +16,7 @@ static DEFAULT_FILE_NAME: &'static str = "addr_book.ab";
 
 // Struct to hold each Address in the Address Book
 // This Name actually kinda sucks, but it's fine for me
+#[derive(Clone)]    // This is used to inherit the Trait Clone in the Struct AddressBook
 struct AddressBook {
     id: u32,
     name: String,
@@ -23,6 +24,45 @@ struct AddressBook {
     postcode: String,
     city: String,
     country: String
+}
+
+/* Implement various Functions for the Struct AddressBook
+ */
+impl AddressBook {
+    // Constructor
+    fn new(n_id: u32, n_name: String, n_address: String, n_postcode: String, n_city: String, n_country: String) -> AddressBook {
+        // No Return needed, if no Return is stated, the last line is returned
+        AddressBook {
+            id: n_id,
+            name: n_name,
+            address: n_address,
+            postcode: n_postcode,
+            city: n_city,
+            country: n_country
+        }
+    }
+
+    // Reset all values in this Struct.
+    fn reset(&mut self) {
+        self.id = 0;
+        self.name = "".to_string();
+        self.address = "".to_string();
+        self.postcode = "".to_string();
+        self.city = "".to_string();
+        self.country = "".to_string();
+    }
+
+    // Formatted Printing of the Address
+    fn print_address(&self) {
+        println!("AddressBook {{");
+        println!("  id      : {}", self.id);
+        println!("  name    : {}", self.name);
+        println!("  address : {}", self.address);
+        println!("  postcode: {}", self.postcode);
+        println!("  city    : {}", self.city);
+        println!("  country : {}", self.country);
+        println!("}}");
+    }
 }
 
 fn main() {
@@ -37,7 +77,8 @@ fn main() {
     println!("2. Modify existing address");
     println!("3. Delete existing address");
     println!("4. Show current addresses");
-    println!("5. Exit/Quit");
+    println!("5. Reload from file (Default Filename: {})", DEFAULT_FILE_NAME);
+    println!("6. Exit/Quit");
 
     for line in reader.lock().lines()   {
         command = line.unwrap();
@@ -52,9 +93,12 @@ fn main() {
                 ;
             }
             "4"|"show"|"current"=> {
-                ;
+                print_address_list(&addr_list);
             }
-            "5"|"quit"|"exit"   => {
+            "5"|"reload"        => {
+                addr_list = load_existing_addressbook();
+            }
+            "6"|"quit"|"exit"   => {
                 save_address_list(&addr_list);
                 break;
             }
@@ -78,47 +122,49 @@ fn load_existing_addressbook() -> LinkedList<AddressBook> {
     let reader = BufReader::new(file);
 
     let mut is_new_instance = false;
-    /*
-    id: u32,
-    name: String,
-    address: String,
-    postcode: String,
-    city: String,
-    country: String
-    */
-    let mut curr_addr_book = AddressBook {id: 0,
-                                        name: "".to_string(),
-                                        address: "".to_string(),
-                                        postcode: "".to_string(),
-                                        city: "".to_string(),
-                                        country: "".to_string()
-                                        };
-    //let mut id, name, address, postcode, city, country;
+    let mut curr_addr_book = AddressBook::new(0,format!(""),format!(""),format!(""),
+                                                format!(""),format!(""));
 
     for line in reader.lines() {
         let mut linebuffer = line.unwrap_or("".to_string());
-        if linebuffer.len() > 3 {
-            if linebuffer[..3] == INSTANCE_SEPERATOR.to_string() {
+        if linebuffer.len() >= INSTANCE_SEPERATOR.len() {
+            if &linebuffer[..INSTANCE_SEPERATOR.len()] == INSTANCE_SEPERATOR {
                 if is_new_instance {
                     is_new_instance = false;
-
-                    //TODO: Copy each value from one struct to another
-                    // Maybe also just reinitialize the curr_addr_book for a new AddressBook after pushing?
-                    //let mut new_addr_book = AddressBook {.. curr_addr_book};
-                    //addr_book_list.push_back(new_addr_book);
+                    addr_book_list.push_back(curr_addr_book.clone());
                 } else {
                     is_new_instance = true;
-
+                    curr_addr_book.reset();
                 }
             }
-            // TODO: match each value from the file to a respective value from the struct.
-            /*
-            match {
-
-                "name    : "    => {},
-                _               => {}
+        }
+        if linebuffer.len() >= 10 {
+            match &linebuffer[..10] {
+                "id      : "    => {
+                    match (&linebuffer[10..]).parse::<u32>() {
+                        Ok(n) => curr_addr_book.id = n,
+                        Err(e) => curr_addr_book.id = 0,
+                    }
+                },
+                "name    : "    => {
+                    curr_addr_book.name = (&linebuffer[10..]).to_string();
+                },
+                "address : "    => {
+                    curr_addr_book.address = (&linebuffer[10..]).to_string();
+                },
+                "postcode: "    => {
+                    curr_addr_book.postcode = (&linebuffer[10..]).to_string();
+                },
+                "city    : "    => {
+                    curr_addr_book.city = (&linebuffer[10..]).to_string();
+                },
+                "country : "    => {
+                    curr_addr_book.country = (&linebuffer[10..]).to_string();
+                },
+                _               => {
+                    println!("couln't match: '{}'", linebuffer);
+                }
             }
-            */
         }
     }
 
@@ -129,6 +175,19 @@ fn create_new_address(curr_list: &LinkedList<AddressBook>) {
 
 }
 
+/* Iterates over the AddressBook List to check which id is the next available
+ * id that can be used
+ */
+fn get_next_id(curr_list: &LinkedList<AddressBook>) -> u32 {
+    let mut max_id = 0;
+    for addr_book in curr_list {
+        if max_id < addr_book.id {
+            max_id = addr_book.id;
+        }
+    }
+    return max_id + 1;
+}
+
 fn modify_address(curr_list: &LinkedList<AddressBook>, id: u32) {
 
 }
@@ -137,9 +196,17 @@ fn delete_address(curr_list: &LinkedList<AddressBook>, id: u32) {
 
 }
 
-/* The Function save_address_list(curr_list: &LinkedList<AddressBook>) takes a Linked List of AddressBook addresses
- * and just writes each of them to the default File that is defined by the constant in the top of the code.
- * This function panics if there are any difficulties with the file creation/modification.
+/* Prints each Address from the AddressBook List.
+ */
+fn print_address_list(curr_list: &LinkedList<AddressBook>) {
+    for addr_book in curr_list {
+        addr_book.print_address();
+    }
+}
+
+/* The Function save_address_list(curr_list: &LinkedList<AddressBook>) takes a Linked List of AddressBook
+ * addresses and just writes each of them to the default File that is defined by the constant in the top
+ * of the code. This function panics if there are any difficulties with the file creation/modification.
  */
 fn save_address_list(curr_list: &LinkedList<AddressBook>) {
     let fname = DEFAULT_FILE_NAME;
@@ -154,11 +221,7 @@ fn save_address_list(curr_list: &LinkedList<AddressBook>) {
         let mut linebuffer = INSTANCE_SEPERATOR.to_string() + "\n";
         writer.write(&linebuffer.into_bytes());
 
-        linebuffer = "id      : ".to_string();
-        // test if mut is needed
-        let mut id_as_char = std::char::from_u32(addr_book.id);
-        linebuffer.push(id_as_char.unwrap_or('0'));
-        linebuffer.push('\n');
+        linebuffer = "id      : ".to_string() + &(addr_book.id.to_string()) + "\n";
         writer.write(&linebuffer.into_bytes());
 
         linebuffer = "name    : ".to_string() + &addr_book.name + "\n";
