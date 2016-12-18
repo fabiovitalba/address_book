@@ -14,6 +14,25 @@ use std::collections::LinkedList;
 static INSTANCE_SEPERATOR: &'static str = "***";
 static DEFAULT_FILE_NAME: &'static str = "addr_book.ab";
 
+enum MenuState {
+    Normal,
+    Deleting,
+    Modifying,
+    Inserting
+}
+
+impl PartialEq for MenuState {
+    fn eq(&self, other: &MenuState) -> bool {
+        match (self, other) {
+            (&MenuState::Normal, &MenuState::Normal) => true,
+            (&MenuState::Inserting, &MenuState::Inserting) => true,
+            (&MenuState::Modifying, &MenuState::Modifying) => true,
+            (&MenuState::Deleting, &MenuState::Deleting) => true,
+            _ => false,
+        }
+    }
+}
+
 // Struct to hold each Address in the Address Book
 // This Name actually kinda sucks, but it's fine for me
 #[derive(Clone)]    // This is used to inherit the Trait Clone in the Struct AddressBook
@@ -68,6 +87,8 @@ impl AddressBook {
 fn main() {
     let reader = io::stdin();
     let mut command;
+    let mut m_state: MenuState = MenuState::Normal;
+    let mut id_selection = false;
 
     // load the list of existing addresses into the List of AddresBook.
     let mut addr_list: LinkedList<AddressBook> = load_existing_addressbook();
@@ -82,29 +103,63 @@ fn main() {
 
     for line in reader.lock().lines()   {
         command = line.unwrap();
-        match &*command.to_lowercase() {
-            "1"|"add"|"create"  => {
-                ;
+
+        if m_state == MenuState::Normal {
+            match &*command.to_lowercase() {
+                "1"|"add"|"create"  => {
+                    ;
+                }
+                "2"|"modify"        => {
+                    ;
+                }
+                "3"|"delete"        => {
+                    id_selection = true;
+                    m_state = MenuState::Deleting;
+                    println!("Which ID do you want to delete?");
+                }
+                "4"|"show"|"current"=> {
+                    print_address_list(&addr_list);
+                    println!("What do you want to do now?");
+                }
+                "5"|"reload"        => {
+                    addr_list = load_existing_addressbook();
+                    println!("Successfully loaded addresses from file.");
+                }
+                "6"|"quit"|"exit"   => {
+                    save_address_list(&addr_list);
+                    break;
+                }
+                _               => {
+                    println!("The command '{}' was not found.", &*command.to_lowercase());
+                }
             }
-            "2"|"modify"        => {
-                ;
-            }
-            "3"|"delete"        => {
-                ;
-            }
-            "4"|"show"|"current"=> {
-                print_address_list(&addr_list);
-            }
-            "5"|"reload"        => {
-                addr_list = load_existing_addressbook();
-            }
-            "6"|"quit"|"exit"   => {
-                save_address_list(&addr_list);
-                break;
-            }
-            _               => {
-                println!("The command '{}' was not found.", &*command.to_lowercase());
-            }
+        } else {
+            match m_state {
+                MenuState::Inserting => {
+
+                },
+                MenuState::Modifying => {
+
+                },
+                MenuState::Deleting => {
+                    if id_selection {
+                        match command.parse::<u32>() {
+                            Ok(n) => {
+                                addr_list = delete_address(&addr_list, n);
+                                println!("Address {} was deleted.", n);
+                                m_state = MenuState::Normal;
+                                id_selection = false;
+                            },
+                            Err(e) => {
+                                m_state = MenuState::Normal;
+                            },
+                        }
+                    }
+                }
+                _ => {
+                    // Do nothing
+                }
+            };
         }
         command.clear();
     }
@@ -188,12 +243,23 @@ fn get_next_id(curr_list: &LinkedList<AddressBook>) -> u32 {
     return max_id + 1;
 }
 
-fn modify_address(curr_list: &LinkedList<AddressBook>, id: u32) {
+fn modify_address(curr_list: &mut LinkedList<AddressBook>, id: u32) {
 
 }
 
-fn delete_address(curr_list: &LinkedList<AddressBook>, id: u32) {
+/* A not very memory-friendly way of deleting an element from a LinkedList without having to directly
+ * modify the List.
+ */
+fn delete_address(curr_list: &LinkedList<AddressBook>, id: u32) -> LinkedList<AddressBook> {
+    let mut new_list: LinkedList<AddressBook> = LinkedList::new();
 
+    for addr_book in curr_list {
+        if addr_book.id != id {
+            new_list.push_back(addr_book.clone());
+        }
+    }
+
+    return new_list;
 }
 
 /* Prints each Address from the AddressBook List.
