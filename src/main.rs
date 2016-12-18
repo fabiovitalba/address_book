@@ -107,7 +107,10 @@ fn main() {
         if m_state == MenuState::Normal {
             match &*command.to_lowercase() {
                 "1"|"add"|"create"  => {
-                    ;
+                    id_selection = false;
+                    m_state = MenuState::Inserting;
+                    println!("Please type the new address in the next line. The ID will be set automatically.");
+                    println!("Use this format: ([Name];[Street];[Postcode];[City];[Country])");
                 }
                 "2"|"modify"        => {
                     ;
@@ -136,7 +139,10 @@ fn main() {
         } else {
             match m_state {
                 MenuState::Inserting => {
-
+                    addr_list = create_new_address(command.clone(), &addr_list);
+                    println!("Successfully added the new Address.");
+                    m_state = MenuState::Normal;
+                    id_selection = false;
                 },
                 MenuState::Modifying => {
 
@@ -226,21 +232,20 @@ fn load_existing_addressbook() -> LinkedList<AddressBook> {
     return addr_book_list;
 }
 
-fn create_new_address(curr_list: &LinkedList<AddressBook>) {
+fn create_new_address(creation_string: String, curr_list: &LinkedList<AddressBook>) -> LinkedList<AddressBook> {
+    let mut new_list: LinkedList<AddressBook> = curr_list.clone();
+    let values = split_string_into_addr_array(&creation_string);
 
-}
+    let new_id = get_next_id(&new_list);
+    let new_addr = AddressBook::new(new_id,
+                                    values[0].clone(),
+                                    values[1].clone(),
+                                    values[2].clone(),
+                                    values[3].clone(),
+                                    values[4].clone());
+    new_list.push_back(new_addr);
 
-/* Iterates over the AddressBook List to check which id is the next available
- * id that can be used
- */
-fn get_next_id(curr_list: &LinkedList<AddressBook>) -> u32 {
-    let mut max_id = 0;
-    for addr_book in curr_list {
-        if max_id < addr_book.id {
-            max_id = addr_book.id;
-        }
-    }
-    return max_id + 1;
+    return new_list;
 }
 
 fn modify_address(curr_list: &mut LinkedList<AddressBook>, id: u32) {
@@ -310,4 +315,42 @@ fn save_address_list(curr_list: &LinkedList<AddressBook>) {
     }
 
     writer.flush();
+}
+
+/* Iterates over the AddressBook List to check which id is the next available
+ * id that can be used
+ */
+fn get_next_id(curr_list: &LinkedList<AddressBook>) -> u32 {
+    let mut max_id = 0;
+    for addr_book in curr_list {
+        if max_id < addr_book.id {
+            max_id = addr_book.id;
+        }
+    }
+    return max_id + 1;
+}
+
+/* Splits an Input String into the respective fields of an Array.
+ * This array is used to create a new AddressBook instance from it.
+ */
+fn split_string_into_addr_array(input_string: &str) -> Vec<String> {
+    let mut addr_arr = vec!["".to_string(); 5];
+    let mut index = 0;
+    let mut counter = 0;
+
+    for str_char in input_string.chars() {
+        if ((counter != 0) && (counter != input_string.len()-1)) ||
+            ((str_char != '(') && (str_char != ')'))
+        {
+            if str_char == ';' {
+                index += 1;
+            } else {
+                addr_arr[index].push(str_char);
+            }
+        }
+
+        counter += 1;
+    }
+
+    return addr_arr;
 }
