@@ -89,6 +89,7 @@ fn main() {
     let mut command;
     let mut m_state: MenuState = MenuState::Normal;
     let mut id_selection = false;
+    let mut curr_id: u32 = 0;
 
     // load the list of existing addresses into the List of AddresBook.
     let mut addr_list: LinkedList<AddressBook> = load_existing_addressbook();
@@ -105,6 +106,7 @@ fn main() {
         command = line.unwrap();
 
         if m_state == MenuState::Normal {
+            curr_id = 0;
             match &*command.to_lowercase() {
                 "1"|"add"|"create"  => {
                     id_selection = false;
@@ -113,7 +115,9 @@ fn main() {
                     println!("Use this format: ([Name];[Street];[Postcode];[City];[Country])");
                 }
                 "2"|"modify"        => {
-                    ;
+                    id_selection = true;
+                    m_state = MenuState::Modifying;
+                    println!("Which ID do you want to modify?");
                 }
                 "3"|"delete"        => {
                     id_selection = true;
@@ -137,6 +141,19 @@ fn main() {
                 }
             }
         } else {
+            if id_selection {
+                match command.parse::<u32>() {
+                    Ok(n) => {
+                        curr_id = n;
+                        id_selection = false;
+                    },
+                    Err(e) => {
+                        curr_id = 0;
+                        m_state = MenuState::Normal;
+                        id_selection = false;
+                    },
+                }
+            }
             match m_state {
                 MenuState::Inserting => {
                     addr_list = create_new_address(command.clone(), &addr_list);
@@ -145,22 +162,15 @@ fn main() {
                     id_selection = false;
                 },
                 MenuState::Modifying => {
-
+                    println!("Address {} was modified.", curr_id);
+                    m_state = MenuState::Normal;
+                    id_selection = false;
                 },
                 MenuState::Deleting => {
-                    if id_selection {
-                        match command.parse::<u32>() {
-                            Ok(n) => {
-                                addr_list = delete_address(&addr_list, n);
-                                println!("Address {} was deleted.", n);
-                                m_state = MenuState::Normal;
-                                id_selection = false;
-                            },
-                            Err(e) => {
-                                m_state = MenuState::Normal;
-                            },
-                        }
-                    }
+                    addr_list = delete_address(&addr_list, curr_id);
+                    println!("Address {} was deleted.", curr_id);
+                    m_state = MenuState::Normal;
+                    id_selection = false;
                 }
                 _ => {
                     // Do nothing
