@@ -17,6 +17,7 @@ static DEFAULT_FILE_NAME: &'static str = "addr_book.ab";
 enum MenuState {
     Normal,
     Deleting,
+    ModifySelection,
     Modifying,
     Inserting
 }
@@ -26,6 +27,7 @@ impl PartialEq for MenuState {
         match (self, other) {
             (&MenuState::Normal, &MenuState::Normal) => true,
             (&MenuState::Inserting, &MenuState::Inserting) => true,
+            (&MenuState::ModifySelection, &MenuState::ModifySelection) => true,
             (&MenuState::Modifying, &MenuState::Modifying) => true,
             (&MenuState::Deleting, &MenuState::Deleting) => true,
             _ => false,
@@ -116,7 +118,7 @@ fn main() {
                 }
                 "2"|"modify"        => {
                     id_selection = true;
-                    m_state = MenuState::Modifying;
+                    m_state = MenuState::ModifySelection;
                     println!("Which ID do you want to modify?");
                 }
                 "3"|"delete"        => {
@@ -161,7 +163,16 @@ fn main() {
                     m_state = MenuState::Normal;
                     id_selection = false;
                 },
+                MenuState::ModifySelection => {
+                    println!("This is the current Adress:");
+                    print_single_address_from_list(&addr_list, curr_id);
+                    println!("Please type the new address in the next line. The ID will be set automatically.");
+                    println!("Use this format: ([Name];[Street];[Postcode];[City];[Country])");
+                    m_state = MenuState::Modifying;
+                    id_selection = false;
+                }
                 MenuState::Modifying => {
+                    addr_list = modify_address(command.clone(), &addr_list, curr_id);
                     println!("Address {} was modified.", curr_id);
                     m_state = MenuState::Normal;
                     id_selection = false;
@@ -258,8 +269,23 @@ fn create_new_address(creation_string: String, curr_list: &LinkedList<AddressBoo
     return new_list;
 }
 
-fn modify_address(curr_list: &mut LinkedList<AddressBook>, id: u32) {
+/* Simply Modify an Address by deleting the old one and creating a new one.
+ *
+ */
+fn modify_address(creation_string: String, curr_list: &LinkedList<AddressBook>, id: u32) -> LinkedList<AddressBook> {
+    let mut new_list: LinkedList<AddressBook> = curr_list.clone();
 
+    new_list = delete_address(&new_list, id);
+    let values = split_string_into_addr_array(&creation_string);
+    let new_addr = AddressBook::new(id,
+                                    values[0].clone(),
+                                    values[1].clone(),
+                                    values[2].clone(),
+                                    values[3].clone(),
+                                    values[4].clone());
+    new_list.push_back(new_addr);
+
+    return new_list;
 }
 
 /* A not very memory-friendly way of deleting an element from a LinkedList without having to directly
@@ -282,6 +308,16 @@ fn delete_address(curr_list: &LinkedList<AddressBook>, id: u32) -> LinkedList<Ad
 fn print_address_list(curr_list: &LinkedList<AddressBook>) {
     for addr_book in curr_list {
         addr_book.print_address();
+    }
+}
+
+/* Prints a single address with the selected ID.
+ */
+fn print_single_address_from_list(curr_list: &LinkedList<AddressBook>, id: u32) {
+    for addr_book in curr_list {
+        if addr_book.id == id {
+            addr_book.print_address();
+        }
     }
 }
 
