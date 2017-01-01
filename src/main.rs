@@ -158,7 +158,7 @@ fn main() {
             }
             match m_state {
                 MenuState::Inserting => {
-                    addr_list = create_new_address(command.clone(), &addr_list);
+                    create_new_address(command.clone(), &mut addr_list);
                     println!("Successfully added the new Address.");
                     m_state = MenuState::Normal;
                     id_selection = false;
@@ -253,20 +253,17 @@ fn load_existing_addressbook() -> LinkedList<AddressBook> {
     return addr_book_list;
 }
 
-fn create_new_address(creation_string: String, curr_list: &LinkedList<AddressBook>) -> LinkedList<AddressBook> {
-    let mut new_list: LinkedList<AddressBook> = curr_list.clone();
+fn create_new_address(creation_string: String, curr_list: &mut LinkedList<AddressBook>) {
     let values = split_string_into_addr_array(&creation_string);
 
-    let new_id = get_next_id(&new_list);
+    let new_id = get_next_id(&curr_list);
     let new_addr = AddressBook::new(new_id,
                                     values[0].clone(),
                                     values[1].clone(),
                                     values[2].clone(),
                                     values[3].clone(),
                                     values[4].clone());
-    new_list.push_back(new_addr);
-
-    return new_list;
+    curr_list.push_back(new_addr);
 }
 
 /* Simply Modify an Address by deleting the old one and creating a new one.
