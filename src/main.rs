@@ -36,10 +36,8 @@ impl PartialEq for MenuState {
 }
 
 // Struct to hold each Address in the Address Book
-// This Name actually kinda sucks, but it's fine for me
-#[derive(Clone)]    // This is used to inherit the Trait Clone in the Struct AddressBook
-struct AddressBook {
-    id: u32,
+#[derive(Clone)]    // This is used to inherit the Trait Clone in the Struct Address
+struct Address {
     name: String,
     address: String,
     postcode: String,
@@ -47,14 +45,13 @@ struct AddressBook {
     country: String
 }
 
-/* Implement various Functions for the Struct AddressBook
+/* Implement various Functions for the Struct Address
  */
-impl AddressBook {
+impl Address {
     // Constructor
-    fn new(n_id: u32, n_name: String, n_address: String, n_postcode: String, n_city: String, n_country: String) -> AddressBook {
+    fn new(n_name: String, n_address: String, n_postcode: String, n_city: String, n_country: String) -> Address {
         // No Return needed, if no Return is stated, the last line is returned
-        AddressBook {
-            id: n_id,
+        Address {
             name: n_name,
             address: n_address,
             postcode: n_postcode,
@@ -65,7 +62,6 @@ impl AddressBook {
 
     // Reset all values in this Struct.
     fn reset(&mut self) {
-        self.id = 0;
         self.name = "".to_string();
         self.address = "".to_string();
         self.postcode = "".to_string();
@@ -75,14 +71,11 @@ impl AddressBook {
 
     // Formatted Printing of the Address
     fn print_address(&self) {
-        println!("AddressBook {{");
-        println!("  id      : {}", self.id);
         println!("  name    : {}", self.name);
         println!("  address : {}", self.address);
         println!("  postcode: {}", self.postcode);
         println!("  city    : {}", self.city);
         println!("  country : {}", self.country);
-        println!("}}");
     }
 }
 
@@ -91,10 +84,10 @@ fn main() {
     let mut command;
     let mut m_state: MenuState = MenuState::Normal;
     let mut id_selection = false;
-    let mut curr_id: u32 = 0;
+    let mut curr_id: usize = 0;
 
-    // load the list of existing addresses into the List of AddresBook.
-    let mut addr_list: LinkedList<AddressBook> = load_existing_addressbook();
+    // load the list of existing addresses into the Vector of Addresses.
+    let mut addr_vec: Vec<Address> = load_existing_addressbook();
 
     println!("Welcome to the Address Book Manager. You have the following options at your disposal:");
     println!("1. Create/Add address");
@@ -127,15 +120,15 @@ fn main() {
                     println!("Which ID do you want to delete?");
                 }
                 "4"|"show"|"current"=> {
-                    print_address_list(&addr_list);
+                    print_address_list(&addr_vec);
                     println!("What do you want to do now?");
                 }
                 "5"|"reload"        => {
-                    addr_list = load_existing_addressbook();
+                    addr_vec = load_existing_addressbook();
                     println!("Successfully loaded addresses from file.");
                 }
                 "6"|"quit"|"exit"   => {
-                    save_address_list(&addr_list);
+                    save_address_list(&addr_vec);
                     break;
                 }
                 _               => {
@@ -144,7 +137,7 @@ fn main() {
             }
         } else {
             if id_selection {
-                match command.parse::<u32>() {
+                match command.parse::<usize>() {
                     Ok(n) => {
                         curr_id = n;
                         id_selection = false;
@@ -158,27 +151,27 @@ fn main() {
             }
             match m_state {
                 MenuState::Inserting => {
-                    create_new_address(command.clone(), &mut addr_list);
+                    create_new_address(command.clone(), &mut addr_vec);
                     println!("Successfully added the new Address.");
                     m_state = MenuState::Normal;
                     id_selection = false;
                 },
                 MenuState::ModifySelection => {
                     println!("This is the current Adress:");
-                    print_single_address_from_list(&addr_list, curr_id);
+                    print_single_address_from_list(&addr_vec, curr_id);
                     println!("Please type the new address in the next line. The ID will be set automatically.");
                     println!("Use this format: ([Name];[Street];[Postcode];[City];[Country])");
                     m_state = MenuState::Modifying;
                     id_selection = false;
                 }
                 MenuState::Modifying => {
-                    addr_list = modify_address(command.clone(), &addr_list, curr_id);
+                    modify_address(command.clone(), &mut addr_vec, curr_id);
                     println!("Address {} was modified.", curr_id);
                     m_state = MenuState::Normal;
                     id_selection = false;
                 },
                 MenuState::Deleting => {
-                    addr_list = delete_address(&addr_list, curr_id);
+                    delete_address(&mut addr_vec, curr_id);
                     println!("Address {} was deleted.", curr_id);
                     m_state = MenuState::Normal;
                     id_selection = false;
@@ -192,9 +185,9 @@ fn main() {
     }
 }
 
-// Loads the addressbook from the current directory into a Linked List.
-fn load_existing_addressbook() -> LinkedList<AddressBook> {
-    let mut addr_book_list: LinkedList<AddressBook> = LinkedList::new();
+// Loads the addressbook from the current directory into a Vector.
+fn load_existing_addressbook() -> Vec<Address> {
+    let mut addr_vec: Vec<Address> = Vec::new();
 
     let fname = DEFAULT_FILE_NAME;
     let file = match File::open(fname) {
@@ -204,7 +197,7 @@ fn load_existing_addressbook() -> LinkedList<AddressBook> {
     let reader = BufReader::new(file);
 
     let mut is_new_instance = false;
-    let mut curr_addr_book = AddressBook::new(0,format!(""),format!(""),format!(""),
+    let mut curr_addr = Address::new(format!(""),format!(""),format!(""),
                                                 format!(""),format!(""));
 
     for line in reader.lines() {
@@ -213,35 +206,29 @@ fn load_existing_addressbook() -> LinkedList<AddressBook> {
             if &linebuffer[..INSTANCE_SEPERATOR.len()] == INSTANCE_SEPERATOR {
                 if is_new_instance {
                     is_new_instance = false;
-                    addr_book_list.push_back(curr_addr_book.clone());
+                    addr_vec.push(curr_addr.clone());
                 } else {
                     is_new_instance = true;
-                    curr_addr_book.reset();
+                    curr_addr.reset();
                 }
             }
         }
         if linebuffer.len() >= 10 {
             match &linebuffer[..10] {
-                "id      : "    => {
-                    match (&linebuffer[10..]).parse::<u32>() {
-                        Ok(n) => curr_addr_book.id = n,
-                        Err(e) => curr_addr_book.id = 0,
-                    }
-                },
                 "name    : "    => {
-                    curr_addr_book.name = (&linebuffer[10..]).to_string();
+                    curr_addr.name = (&linebuffer[10..]).to_string();
                 },
                 "address : "    => {
-                    curr_addr_book.address = (&linebuffer[10..]).to_string();
+                    curr_addr.address = (&linebuffer[10..]).to_string();
                 },
                 "postcode: "    => {
-                    curr_addr_book.postcode = (&linebuffer[10..]).to_string();
+                    curr_addr.postcode = (&linebuffer[10..]).to_string();
                 },
                 "city    : "    => {
-                    curr_addr_book.city = (&linebuffer[10..]).to_string();
+                    curr_addr.city = (&linebuffer[10..]).to_string();
                 },
                 "country : "    => {
-                    curr_addr_book.country = (&linebuffer[10..]).to_string();
+                    curr_addr.country = (&linebuffer[10..]).to_string();
                 },
                 _               => {
                     println!("couln't match: '{}'", linebuffer);
@@ -250,79 +237,63 @@ fn load_existing_addressbook() -> LinkedList<AddressBook> {
         }
     }
 
-    return addr_book_list;
+    return addr_vec;
 }
 
-fn create_new_address(creation_string: String, curr_list: &mut LinkedList<AddressBook>) {
+fn create_new_address(creation_string: String, curr_vec: &mut Vec<Address>) {
     let values = split_string_into_addr_array(&creation_string);
-
-    let new_id = get_next_id(&curr_list);
-    let new_addr = AddressBook::new(new_id,
-                                    values[0].clone(),
-                                    values[1].clone(),
-                                    values[2].clone(),
-                                    values[3].clone(),
-                                    values[4].clone());
-    curr_list.push_back(new_addr);
+    let new_addr = Address::new(values[0].clone(),
+                                values[1].clone(),
+                                values[2].clone(),
+                                values[3].clone(),
+                                values[4].clone());
+    curr_vec.push(new_addr);
 }
 
 /* Simply Modify an Address by deleting the old one and creating a new one.
- *
  */
-fn modify_address(creation_string: String, curr_list: &LinkedList<AddressBook>, id: u32) -> LinkedList<AddressBook> {
-    let mut new_list: LinkedList<AddressBook> = curr_list.clone();
-
-    new_list = delete_address(&new_list, id);
+fn modify_address(creation_string: String, mut curr_vec: &mut Vec<Address>, id: usize) {
+    delete_address(&mut curr_vec, id);
     let values = split_string_into_addr_array(&creation_string);
-    let new_addr = AddressBook::new(id,
-                                    values[0].clone(),
-                                    values[1].clone(),
-                                    values[2].clone(),
-                                    values[3].clone(),
-                                    values[4].clone());
-    new_list.push_back(new_addr);
-
-    return new_list;
+    let new_addr = Address::new(values[0].clone(),
+                                values[1].clone(),
+                                values[2].clone(),
+                                values[3].clone(),
+                                values[4].clone());
+    curr_vec.insert(id, new_addr);
 }
 
-/* A not very memory-friendly way of deleting an element from a LinkedList without having to directly
- * modify the List.
+/* Delete the selected id from the Vector
  */
-fn delete_address(curr_list: &LinkedList<AddressBook>, id: u32) -> LinkedList<AddressBook> {
-    let mut new_list: LinkedList<AddressBook> = LinkedList::new();
-
-    for addr_book in curr_list {
-        if addr_book.id != id {
-            new_list.push_back(addr_book.clone());
-        }
-    }
-
-    return new_list;
+fn delete_address(curr_vec: &mut Vec<Address>, id: usize) {
+    curr_vec.remove(id);
 }
 
-/* Prints each Address from the AddressBook List.
+/* Prints each Address from the Address Vector.
  */
-fn print_address_list(curr_list: &LinkedList<AddressBook>) {
-    for addr_book in curr_list {
-        addr_book.print_address();
+fn print_address_list(curr_vec: &Vec<Address>) {
+    let mut i: u32 = 0;
+    for addr in curr_vec {
+        println!("Address [{}]", i);
+        addr.print_address();
+        i += 1;
     }
 }
 
 /* Prints a single address with the selected ID.
  */
-fn print_single_address_from_list(curr_list: &LinkedList<AddressBook>, id: u32) {
-    for addr_book in curr_list {
-        if addr_book.id == id {
-            addr_book.print_address();
-        }
+fn print_single_address_from_list(curr_vec: &Vec<Address>, id: usize) {
+    match curr_vec.get(id) {
+        Some(addr) => addr.print_address(),
+        None => ()
     }
 }
 
-/* The Function save_address_list(curr_list: &LinkedList<AddressBook>) takes a Linked List of AddressBook
+/* The Function save_address_list(curr_vec: &Vec<Address>) takes a Vector of Address
  * addresses and just writes each of them to the default File that is defined by the constant in the top
  * of the code. This function panics if there are any difficulties with the file creation/modification.
  */
-fn save_address_list(curr_list: &LinkedList<AddressBook>) {
+fn save_address_list(curr_vec: &Vec<Address>) {
     let fname = DEFAULT_FILE_NAME;
 
     let mut file = match File::create(fname) {
@@ -331,26 +302,23 @@ fn save_address_list(curr_list: &LinkedList<AddressBook>) {
     };
 
     let mut writer = BufWriter::new(&file);
-    for addr_book in curr_list {
+    for addr in curr_vec {
         let mut linebuffer = INSTANCE_SEPERATOR.to_string() + "\n";
         writer.write(&linebuffer.into_bytes());
 
-        linebuffer = "id      : ".to_string() + &(addr_book.id.to_string()) + "\n";
+        linebuffer = "name    : ".to_string() + &addr.name + "\n";
         writer.write(&linebuffer.into_bytes());
 
-        linebuffer = "name    : ".to_string() + &addr_book.name + "\n";
+        linebuffer = "address : ".to_string() + &addr.address + "\n";
         writer.write(&linebuffer.into_bytes());
 
-        linebuffer = "address : ".to_string() + &addr_book.address + "\n";
+        linebuffer = "postcode: ".to_string() + &addr.postcode + "\n";
         writer.write(&linebuffer.into_bytes());
 
-        linebuffer = "postcode: ".to_string() + &addr_book.postcode + "\n";
+        linebuffer = "city    : ".to_string() + &addr.city + "\n";
         writer.write(&linebuffer.into_bytes());
 
-        linebuffer = "city    : ".to_string() + &addr_book.city + "\n";
-        writer.write(&linebuffer.into_bytes());
-
-        linebuffer = "country : ".to_string() + &addr_book.country + "\n";
+        linebuffer = "country : ".to_string() + &addr.country + "\n";
         writer.write(&linebuffer.into_bytes());
 
         linebuffer = INSTANCE_SEPERATOR.to_string() + "\n";
@@ -360,21 +328,8 @@ fn save_address_list(curr_list: &LinkedList<AddressBook>) {
     writer.flush();
 }
 
-/* Iterates over the AddressBook List to check which id is the next available
- * id that can be used
- */
-fn get_next_id(curr_list: &LinkedList<AddressBook>) -> u32 {
-    let mut max_id = 0;
-    for addr_book in curr_list {
-        if max_id < addr_book.id {
-            max_id = addr_book.id;
-        }
-    }
-    return max_id + 1;
-}
-
 /* Splits an Input String into the respective fields of an Array.
- * This array is used to create a new AddressBook instance from it.
+ * This array is used to create a new Address instance from it.
  */
 fn split_string_into_addr_array(input_string: &str) -> Vec<String> {
     let mut addr_arr = vec!["".to_string(); 5];
