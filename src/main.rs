@@ -2,7 +2,6 @@
 use std::io::{self, BufReader, BufWriter};
 use std::io::prelude::*;
 use std::fs::File;
-use std::collections::LinkedList;
 
 // Difference between String and &str:
 // String is like a Vector of expandable buffer full of characters on the heap
