@@ -138,7 +138,7 @@ fn main() {
             if id_selection {
                 match command.parse::<usize>() {
                     Ok(n) => {
-                        curr_id = n;
+                        curr_id = n - 1;
                         id_selection = false;
                     },
                     Err(e) => {
@@ -157,21 +157,21 @@ fn main() {
                 },
                 MenuState::ModifySelection => {
                     println!("This is the current Adress:");
-                    print_single_address_from_list(&addr_vec, curr_id-1);
+                    print_single_address_from_list(&addr_vec, curr_id);
                     println!("Please type the new address in the next line. The ID will be set automatically.");
                     println!("Use this format: ([Name];[Street];[Postcode];[City];[Country])");
                     m_state = MenuState::Modifying;
                     id_selection = false;
                 }
                 MenuState::Modifying => {
-                    modify_address(command.clone(), &mut addr_vec, curr_id-1);
-                    println!("Address {} was modified.", curr_id);
+                    modify_address(command.clone(), &mut addr_vec, curr_id);
+                    println!("Address {} was modified.", curr_id + 1);
                     m_state = MenuState::Normal;
                     id_selection = false;
                 },
                 MenuState::Deleting => {
                     delete_address(&mut addr_vec, curr_id);
-                    println!("Address {} was deleted.", curr_id-1);
+                    println!("Address {} was deleted.", curr_id + 1);
                     m_state = MenuState::Normal;
                     id_selection = false;
                 }
