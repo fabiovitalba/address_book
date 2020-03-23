@@ -48,24 +48,24 @@ struct Address {
  */
 impl Address {
     // Constructor
-    fn new(n_name: String, n_address: String, n_postcode: String, n_city: String, n_country: String) -> Address {
+    fn new(n_name: &str, n_address: &str, n_postcode: &str, n_city: &str, n_country: &str) -> Address {
         // No Return needed, if no Return is stated, the last line is returned
         Address {
-            name: n_name,
-            address: n_address,
-            postcode: n_postcode,
-            city: n_city,
-            country: n_country
+            name: String::from(n_name),
+            address: String::from(n_address),
+            postcode: String::from(n_postcode),
+            city: String::from(n_city),
+            country: String::from(n_country)
         }
     }
 
     // Reset all values in this Struct.
     fn reset(&mut self) {
-        self.name = "".to_string();
-        self.address = "".to_string();
-        self.postcode = "".to_string();
-        self.city = "".to_string();
-        self.country = "".to_string();
+        self.name = String::from("");
+        self.address = String::from("");
+        self.postcode = String::from("");
+        self.city = String::from("");
+        self.country = String::from("");
     }
 
     // Formatted Printing of the Address
@@ -150,28 +150,28 @@ fn main() {
             }
             match m_state {
                 MenuState::Inserting => {
-                    create_new_address(command.clone(), &mut addr_vec);
+                    add_new_address(command.clone(), &mut addr_vec);
                     println!("Successfully added the new Address.");
                     m_state = MenuState::Normal;
                     id_selection = false;
                 },
                 MenuState::ModifySelection => {
                     println!("This is the current Adress:");
-                    print_single_address_from_list(&addr_vec, curr_id);
+                    print_single_address_from_list(&addr_vec, curr_id-1);
                     println!("Please type the new address in the next line. The ID will be set automatically.");
                     println!("Use this format: ([Name];[Street];[Postcode];[City];[Country])");
                     m_state = MenuState::Modifying;
                     id_selection = false;
                 }
                 MenuState::Modifying => {
-                    modify_address(command.clone(), &mut addr_vec, curr_id);
+                    modify_address(command.clone(), &mut addr_vec, curr_id-1);
                     println!("Address {} was modified.", curr_id);
                     m_state = MenuState::Normal;
                     id_selection = false;
                 },
                 MenuState::Deleting => {
                     delete_address(&mut addr_vec, curr_id);
-                    println!("Address {} was deleted.", curr_id);
+                    println!("Address {} was deleted.", curr_id-1);
                     m_state = MenuState::Normal;
                     id_selection = false;
                 }
@@ -196,8 +196,7 @@ fn load_existing_addressbook() -> Vec<Address> {
     let reader = BufReader::new(file);
 
     let mut is_new_instance = false;
-    let mut curr_addr = Address::new(format!(""),format!(""),format!(""),
-                                                format!(""),format!(""));
+    let mut curr_addr = Address::new("","","","","");
 
     for line in reader.lines() {
         let mut linebuffer = line.unwrap_or("".to_string());
@@ -239,13 +238,13 @@ fn load_existing_addressbook() -> Vec<Address> {
     return addr_vec;
 }
 
-fn create_new_address(creation_string: String, curr_vec: &mut Vec<Address>) {
+fn add_new_address(creation_string: String, curr_vec: &mut Vec<Address>) {
     let values = split_string_into_addr_array(&creation_string);
-    let new_addr = Address::new(values[0].clone(),
-                                values[1].clone(),
-                                values[2].clone(),
-                                values[3].clone(),
-                                values[4].clone());
+    let new_addr = Address::new(&values[0],
+                                &values[1],
+                                &values[2],
+                                &values[3],
+                                &values[4]);
     curr_vec.push(new_addr);
 }
 
@@ -254,11 +253,11 @@ fn create_new_address(creation_string: String, curr_vec: &mut Vec<Address>) {
 fn modify_address(creation_string: String, mut curr_vec: &mut Vec<Address>, id: usize) {
     delete_address(&mut curr_vec, id);
     let values = split_string_into_addr_array(&creation_string);
-    let new_addr = Address::new(values[0].clone(),
-                                values[1].clone(),
-                                values[2].clone(),
-                                values[3].clone(),
-                                values[4].clone());
+    let new_addr = Address::new(&values[0],
+                                &values[1],
+                                &values[2],
+                                &values[3],
+                                &values[4]);
     curr_vec.insert(id, new_addr);
 }
 
@@ -273,7 +272,7 @@ fn delete_address(curr_vec: &mut Vec<Address>, id: usize) {
 fn print_address_list(curr_vec: &Vec<Address>) {
     let mut i: u32 = 0;
     for addr in curr_vec {
-        println!("Address [{}]", i);
+        println!("Address [{}]", i+1);
         addr.print_address();
         i += 1;
     }
