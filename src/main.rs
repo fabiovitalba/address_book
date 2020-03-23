@@ -141,7 +141,7 @@ fn main() {
                         curr_id = n - 1;
                         id_selection = false;
                     },
-                    Err(e) => {
+                    Err(_e) => {
                         curr_id = 0;
                         m_state = MenuState::Normal;
                         id_selection = false;
@@ -199,7 +199,7 @@ fn load_existing_addressbook() -> Vec<Address> {
     let mut curr_addr = Address::new("","","","","");
 
     for line in reader.lines() {
-        let mut linebuffer = line.unwrap_or("".to_string());
+        let linebuffer = line.unwrap_or("".to_string());
         if linebuffer.len() >= INSTANCE_SEPERATOR.len() {
             if &linebuffer[..INSTANCE_SEPERATOR.len()] == INSTANCE_SEPERATOR {
                 if is_new_instance {
@@ -294,7 +294,7 @@ fn print_single_address_from_list(curr_vec: &Vec<Address>, id: usize) {
 fn save_address_list(curr_vec: &Vec<Address>) {
     let fname = DEFAULT_FILE_NAME;
 
-    let mut file = match File::create(fname) {
+    let file = match File::create(fname) {
         Ok(file) => file,
         Err(e) => panic!("File error: {}", e)
     };
@@ -302,28 +302,28 @@ fn save_address_list(curr_vec: &Vec<Address>) {
     let mut writer = BufWriter::new(&file);
     for addr in curr_vec {
         let mut linebuffer = INSTANCE_SEPERATOR.to_string() + "\n";
-        writer.write(&linebuffer.into_bytes());
+        writer.write(&linebuffer.into_bytes()).unwrap_err();
 
         linebuffer = "name    : ".to_string() + &addr.name + "\n";
-        writer.write(&linebuffer.into_bytes());
+        writer.write(&linebuffer.into_bytes()).unwrap_err();
 
         linebuffer = "address : ".to_string() + &addr.address + "\n";
-        writer.write(&linebuffer.into_bytes());
+        writer.write(&linebuffer.into_bytes()).unwrap_err();
 
         linebuffer = "postcode: ".to_string() + &addr.postcode + "\n";
-        writer.write(&linebuffer.into_bytes());
+        writer.write(&linebuffer.into_bytes()).unwrap_err();
 
         linebuffer = "city    : ".to_string() + &addr.city + "\n";
-        writer.write(&linebuffer.into_bytes());
+        writer.write(&linebuffer.into_bytes()).unwrap_err();
 
         linebuffer = "country : ".to_string() + &addr.country + "\n";
-        writer.write(&linebuffer.into_bytes());
+        writer.write(&linebuffer.into_bytes()).unwrap_err();
 
         linebuffer = INSTANCE_SEPERATOR.to_string() + "\n";
-        writer.write(&linebuffer.into_bytes());
+        writer.write(&linebuffer.into_bytes()).unwrap_err();
     }
 
-    writer.flush();
+    writer.flush().unwrap_err();
 }
 
 /* Splits an Input String into the respective fields of an Array.
